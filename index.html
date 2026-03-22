@@ -514,7 +514,10 @@
         .bp-sep { color: var(--text-muted); font-size: 0.9rem; padding-bottom: 12px; }
         .bp-item .value { font-family: var(--mono); font-size: 0.85rem; font-weight: 500; color: var(--accent); background: var(--accent-glow); padding: 2px 8px; border-radius: 6px; white-space: nowrap; }
 
-        /* Fluid management table */
+        /* Transfusion table: 3rd column narrower on mobile */
+        @media (max-width: 680px) {
+            .med-table td:last-child, .med-table th:last-child { min-width: 80px; }
+        }
         .fluid-label { font-size: 0.82rem; color: var(--text); }
         .fluid-solution { font-size: 0.78rem; color: var(--text-muted); font-style: italic; }
         .fluid-dose { text-align: right; white-space: nowrap; }
@@ -2466,7 +2469,7 @@
             <div class="complication-section">
                 <div class="complication-section-title">Indikation – Transfusionsgrenze Hb</div>
                 <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:12px;font-size:0.82rem;line-height:1.7;">
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 20px;">
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px 16px;">
                         <div>
                             <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">Neugeborene &lt; 28 Tage</div>
                             <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -2509,7 +2512,7 @@
                 <div class="complication-section-title">Dosis – Ziel-Hb etwa 20 g/L über Transfusionsgrenze</div>
                 <div class="table-wrap" style="margin-bottom:8px;">
                     <table class="med-table">
-                        <thead><tr><th>Formel</th><th>Volumen → ${w} kg</th><th>Hb-Anstieg</th></tr></thead>
+                        <thead><tr><th>Formel</th><th>Volumen</th><th>Hb-Anstieg</th></tr></thead>
                         <tbody>
                             <tr><td class="fluid-label">4 ml EK/kg</td><td><span class="dosis-cell">${ek_10} ml</span></td><td><span class="dosis-cell" style="background:var(--green-dim);color:var(--green);">≈ +10 g/L</span></td></tr>
                             <tr><td class="fluid-label">20 ml EK/kg <span class="med-notes">Zwischenkontrolle!</span></td><td><span class="dosis-cell">${ek_50} ml</span></td><td><span class="dosis-cell" style="background:var(--green-dim);color:var(--green);">≈ +50 g/L</span></td></tr>
@@ -2553,7 +2556,7 @@
                 <div class="complication-section-title">Dosis</div>
                 <div class="table-wrap" style="margin-bottom:8px;">
                     <table class="med-table">
-                        <thead><tr><th>Dosis</th><th>Volumen → ${w} kg</th></tr></thead>
+                        <thead><tr><th>Dosis</th><th>Volumen</th></tr></thead>
                         <tbody>
                             <tr><td class="fluid-label">20 ml/kg</td><td><span class="dosis-cell">${plasma_lo} ml</span></td></tr>
                             <tr><td class="fluid-label">30 ml/kg</td><td><span class="dosis-cell">${plasma_hi} ml</span></td></tr>
@@ -2589,7 +2592,7 @@
                 <div class="complication-note">* Grosse neurochirurg. OP: ggf. höhere Grenze · ** Ultraschallgesteuerte Punktion komprimierbarer Venen: ggf. &lt;20.000/µl<br>⚠ Bei Hypofibrinogenämie → zuerst Fibrinogen normalisieren! (FIBTEM A10 &lt;10 mm)</div>
             </div>
             <div class="complication-section">
-                <div class="complication-section-title">Dosis → ${w} kg</div>
+                <div class="complication-section-title">Dosis</div>
                 <div class="data-row" style="margin-bottom:8px;">
                     <span class="label">${w < 15 ? '&lt; 15 kg: 20 ml/kg' : '&gt; 15 kg: 1 TK'}</span>
                     <span class="value">${tk_dose_ml}</span>
@@ -2609,7 +2612,7 @@
         const gerinnungContent = `
             <div class="table-wrap">
                 <table class="med-table">
-                    <thead><tr><th>Medikament</th><th>Indikation / Hinweis</th><th>Dosis → ${w} kg</th></tr></thead>
+                    <thead><tr><th>Medikament</th><th>Indikation / Hinweis</th><th>Dosis</th></tr></thead>
                     <tbody>
                         <tr>
                             <td class="fluid-label"><strong>Tranexamsäure</strong><span class="med-notes">0.5 g/5 ml · i.v. über 15 min</span></td>
@@ -2666,10 +2669,10 @@
             </div>`;
 
         container.innerHTML =
-            accordion('🔴 Erythrozytenkonzentrat (EK)', ekContent, true) +
-            accordion('🟡 Plasma (S/D)', plasmaContent) +
-            accordion('🟣 Thrombozytenkonzentrat (TK)', tkContent) +
-            accordion('⚙️ Gerinnungsaktiva', gerinnungContent);
+            accordion('Erythrozytenkonzentrat (EK)', ekContent, true) +
+            accordion('Plasma (S/D)', plasmaContent) +
+            accordion('Thrombozytenkonzentrat (TK)', tkContent) +
+            accordion('Gerinnungsaktiva', gerinnungContent);
     }
 
     // Event-Listener
