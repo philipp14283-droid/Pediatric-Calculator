@@ -619,6 +619,7 @@
         <button class="tab-button" data-tab="complications">⚠️ Komplikationen</button>
         <button class="tab-button" data-tab="fluids">💧 Flüssigkeit</button>
         <button class="tab-button" data-tab="la">💉 Lokalanästhetika</button>
+        <button class="tab-button" data-tab="transfusion">🩸 Transfusion</button>
     </div>
 
     <!-- Vitals Tab -->
@@ -798,6 +799,11 @@
     <div id="laTab" class="tab-content">
         <div class="tab-header">💉 Lokalanästhetika</div>
         <div id="laContent"></div>
+    </div>
+
+    <div id="transfusionTab" class="tab-content">
+        <div class="tab-header">🩸 Transfusion</div>
+        <div id="transfusionContent"></div>
     </div>
 
 <script>
@@ -1993,6 +1999,8 @@
         renderFluids(w);
         // Lokalanästhetika aktualisieren
         renderLA(w, yr);
+        // Transfusion aktualisieren
+        renderTransfusion(w, ageMonthsTotal);
     }
 
     // Komplikationen rendern
@@ -2388,6 +2396,280 @@
                 tr('perineural', ropi_ml_lo + ' – ' + ropi_ml_hi, ropi_mg_lo + ' – ' + ropi_mg_hi, '1.5–2 ml/kg · 3–4 mg/kg')
             )}
         `;
+    }
+
+    // Transfusion rendern
+    function renderTransfusion(weight, ageMonthsTotal) {
+        const container = document.getElementById('transfusionContent');
+        if (!container) return;
+        const w = weight;
+        const ageM = ageMonthsTotal;
+
+        // EK Dosierungen
+        const ek_10  = (4  * w).toFixed(0);
+        const ek_50  = (20 * w).toFixed(0);
+        const ek_ziel_vol = (((20/10) * 4) * w).toFixed(0); // ~8 ml/kg für +20g/L
+
+        // TK
+        const tk_dose_ml = w < 15 ? (20 * w).toFixed(0) + ' ml (20 ml/kg)' : '1 TK';
+
+        // Plasma
+        const plasma_lo = (20 * w).toFixed(0);
+        const plasma_hi = (30 * w).toFixed(0);
+
+        // Tranexamsäure
+        const txa_std_mg  = (17.5 * w).toFixed(0) + ' mg (15–20 mg/kg)';
+        const txa_hyper_mg= (20   * w).toFixed(0) + ' mg (20 mg/kg)';
+        const txa_perf_kch= (5.0  * w).toFixed(1) + ' mg/h (5 mg/kg/h)';
+        const txa_perf_hch= (1.5  * w).toFixed(1) + ' mg/h (1.5 mg/kg/h)';
+
+        // Fibrinogen
+        const fibri_mg = (50 * w).toFixed(0) + ' mg';
+
+        // Prothrombinkomplex
+        const ptc_low  = (25 * w).toFixed(0) + ' IE';
+        const ptc_form = '(Δ% × ' + w + ' × 56)';
+
+        // Desmopressin
+        const ddavp = (0.3 * w).toFixed(2) + ' µg';
+
+        // F VIII Notfall
+        const fviii = (50 * w).toFixed(0) + ' IE';
+
+        // F XIII
+        const f13 = (20 * w).toFixed(0) + ' IE';
+
+        // Transfusionsgrenzen Hb (altersbasiert)
+        let hbTrigger, hbHypox, hbLabel;
+        if (ageM < 2) {
+            hbTrigger = '100 g/L'; hbHypox = '130 g/L'; hbLabel = 'NG < 2 Wochen';
+        } else if (ageM < 1) { // catch-all für FG
+            hbTrigger = '100 g/L'; hbHypox = '130 g/L'; hbLabel = 'Neugeborene';
+        } else if (ageM <= 1) {
+            hbTrigger = '80 g/L'; hbHypox = '110 g/L'; hbLabel = 'NG 2–4 Wochen';
+        } else {
+            hbTrigger = '60–70 g/L'; hbHypox = '100 g/L'; hbLabel = 'Säugling / Kind';
+        }
+
+        function accordion(title, content, open = false) {
+            return `
+            <div class="complication-item" style="margin-bottom:10px;">
+                <div class="complication-header${open ? ' open' : ''}" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('visible');">
+                    <span class="arrow">▶</span><span>${title}</span>
+                </div>
+                <div class="complication-content${open ? ' visible' : ''}">${content}</div>
+            </div>`;
+        }
+
+        // ── EK ──────────────────────────────────────────────────
+        const ekContent = `
+            <div class="complication-section">
+                <div class="complication-section-title">Indikation – Transfusionsgrenze Hb</div>
+                <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:12px;font-size:0.82rem;line-height:1.7;">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 20px;">
+                        <div>
+                            <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">Neugeborene &lt; 28 Tage</div>
+                            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                                <div style="text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 10px;">
+                                    <div style="font-size:0.68rem;color:var(--text-muted);">&lt; 2 Wochen</div>
+                                    <div style="font-family:var(--mono);font-weight:700;color:var(--accent);font-size:1rem;">100 g/L</div>
+                                    <div style="font-size:0.65rem;color:var(--red);margin-top:2px;">Hypoxämie → 130</div>
+                                </div>
+                                <div style="text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 10px;">
+                                    <div style="font-size:0.68rem;color:var(--text-muted);">2–4 Wochen</div>
+                                    <div style="font-family:var(--mono);font-weight:700;color:var(--accent);font-size:1rem;">80 g/L</div>
+                                    <div style="font-size:0.65rem;color:var(--red);margin-top:2px;">Hypoxämie → 110</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">Säuglinge &amp; Kinder</div>
+                            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                                <div style="text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 10px;">
+                                    <div style="font-size:0.68rem;color:var(--text-muted);">OPS / IPS</div>
+                                    <div style="font-family:var(--mono);font-weight:700;color:var(--accent);font-size:1rem;">70 g/L</div>
+                                    <div style="font-size:0.65rem;color:var(--red);margin-top:2px;">Hypoxämie → 100</div>
+                                </div>
+                                <div style="text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 10px;">
+                                    <div style="font-size:0.68rem;color:var(--text-muted);">Station / Onko / SZT</div>
+                                    <div style="font-family:var(--mono);font-weight:700;color:var(--accent);font-size:1rem;">60 g/L</div>
+                                    <div style="font-size:0.65rem;color:var(--red);margin-top:2px;">Hypoxämie → 100</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:0.75rem;color:var(--text-muted);">
+                        ⚠ Aktive Blutung, schwere Hypoxämie, Hämolyse, klin. Anämie-Zeichen, SZT/GVHD &gt;II → evtl. höhere Grenze<br>
+                        ⚠ Bei Erreichen der Grenze und Entscheid nicht zu transfundieren → engmaschig kontrollieren
+                    </div>
+                </div>
+            </div>
+
+            <div class="complication-section">
+                <div class="complication-section-title">Dosis – Ziel-Hb etwa 20 g/L über Transfusionsgrenze</div>
+                <div class="table-wrap" style="margin-bottom:8px;">
+                    <table class="med-table">
+                        <thead><tr><th>Formel</th><th>Volumen → ${w} kg</th><th>Hb-Anstieg</th></tr></thead>
+                        <tbody>
+                            <tr><td class="fluid-label">4 ml EK/kg</td><td><span class="dosis-cell">${ek_10} ml</span></td><td><span class="dosis-cell" style="background:var(--green-dim);color:var(--green);">≈ +10 g/L</span></td></tr>
+                            <tr><td class="fluid-label">20 ml EK/kg <span class="med-notes">Zwischenkontrolle!</span></td><td><span class="dosis-cell">${ek_50} ml</span></td><td><span class="dosis-cell" style="background:var(--green-dim);color:var(--green);">≈ +50 g/L</span></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="complication-note">Cave Sichelzellkrankheit: max. Hb nach Transfusion <strong>110 g/L</strong></div>
+            </div>
+
+            <div class="complication-section">
+                <div class="complication-section-title">Produktinfos</div>
+                <ul class="complication-list-bullet">
+                    <li>Leukozyten-depletiert · Lagerzeit 42 Tage bei 2–6°C · Kosten ca. <strong>250 CHF</strong></li>
+                    <li>Kühlkette unterbrochen → EK noch <strong>6 Std.</strong> verwendbar</li>
+                    <li>Transfusionsbesteck mit <strong>200 µm Filter</strong></li>
+                    <li><strong>Bestrahlung:</strong> SZT, Onko/Immunologie*, Austauschtransfusion bei Kind &lt; 3 Monate (*s. Merkblatt Hämatologie)</li>
+                </ul>
+            </div>
+
+            <div class="complication-section">
+                <div class="complication-section-title">Bestellen</div>
+                <ul class="complication-list-bullet">
+                    <li>Via Auftragsformular <strong>LA 2</strong> ans Transfusionslabor</li>
+                    <li>2 unabhängige Blutentnahmen (1,5 ml EDTA je Entnahme)</li>
+                    <li>Kind &lt; 3 Monate: 1× 200 µl + 1× 1,5 ml EDTA · Kind &lt; 1500 g: nur 1× 1,5 ml</li>
+                    <li>Antikörpersuchtest gültig <strong>96 h</strong> nach Blutentnahme</li>
+                </ul>
+            </div>`;
+
+        // ── Plasma ──────────────────────────────────────────────
+        const plasmaContent = `
+            <div class="complication-section">
+                <div class="complication-section-title">Indikation</div>
+                <ul class="complication-list-bullet">
+                    <li>Massivtransfusion, DIC</li>
+                    <li>Leberinsuffizienz: nur bei Blutung / erhöhtem Risiko + deutlich erhöhtem INR, EXTEM CT &gt;90 s oder INTEM CT &gt;240 s</li>
+                    <li>⚠ Bei Hypofibrinogenämie (FIBTEM A10 &lt;10 mm / Fibrinogen &lt;1,5 g/L) → <strong>zuerst Fibrinogen normalisieren!</strong></li>
+                </ul>
+            </div>
+            <div class="complication-section">
+                <div class="complication-section-title">Dosis</div>
+                <div class="table-wrap" style="margin-bottom:8px;">
+                    <table class="med-table">
+                        <thead><tr><th>Dosis</th><th>Volumen → ${w} kg</th></tr></thead>
+                        <tbody>
+                            <tr><td class="fluid-label">20 ml/kg</td><td><span class="dosis-cell">${plasma_lo} ml</span></td></tr>
+                            <tr><td class="fluid-label">30 ml/kg</td><td><span class="dosis-cell">${plasma_hi} ml</span></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="complication-note">Cave: Volumenbelastung · Alternativ bei schwerer Blutung: Prothrombinkomplex 20 IE/kg i.v.</div>
+            </div>
+            <div class="complication-section">
+                <div class="complication-section-title">Produktinfos</div>
+                <ul class="complication-list-bullet">
+                    <li>Solvent/Detergent (S/D) Plasma · Kosten ca. <strong>120 CHF</strong></li>
+                    <li>Nach Auftauen <strong>6 Std.</strong> verwendbar · Transfusionsbesteck mit 200 µm Filter</li>
+                    <li>Via LA 2 bestellen → wird vom Transfusionslabor aufgetaut</li>
+                </ul>
+            </div>`;
+
+        // ── TK ──────────────────────────────────────────────────
+        const tkContent = `
+            <div class="complication-section">
+                <div class="complication-section-title">Transfusionsgrenzen</div>
+                <div class="table-wrap" style="margin-bottom:8px;">
+                    <table class="med-table">
+                        <thead><tr><th>Zustand</th><th>Grenze</th></tr></thead>
+                        <tbody>
+                            <tr><td class="fluid-label">Massive Blutung, grosse OP, HLM-OP, ZVK-Einlage</td><td><span class="dosis-cell">&lt; 50.000/µL</span></td></tr>
+                            <tr><td class="fluid-label">Blutung / kleinere Operationen</td><td><span class="dosis-cell">&lt; 30.000/µL</span></td></tr>
+                            <tr><td class="fluid-label">NG, instabile/septische IPS-Pat., vor LP, GVHD &gt;II</td><td><span class="dosis-cell">&lt; 20.000/µL</span></td></tr>
+                            <tr><td class="fluid-label">Stabiler Pat., kein Infekt, kein Fieber, keine Blutung</td><td><span class="dosis-cell">&lt; 10.000/µL</span></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="complication-note">* Grosse neurochirurg. OP: ggf. höhere Grenze · ** Ultraschallgesteuerte Punktion komprimierbarer Venen: ggf. &lt;20.000/µl<br>⚠ Bei Hypofibrinogenämie → zuerst Fibrinogen normalisieren! (FIBTEM A10 &lt;10 mm)</div>
+            </div>
+            <div class="complication-section">
+                <div class="complication-section-title">Dosis → ${w} kg</div>
+                <div class="data-row" style="margin-bottom:8px;">
+                    <span class="label">${w < 15 ? '&lt; 15 kg: 20 ml/kg' : '&gt; 15 kg: 1 TK'}</span>
+                    <span class="value">${tk_dose_ml}</span>
+                </div>
+            </div>
+            <div class="complication-section">
+                <div class="complication-section-title">Produktinfos &amp; Bestellen</div>
+                <ul class="complication-list-bullet">
+                    <li>Apherese-Konzentrat · pathogeninaktiviert · leukozytendepletiert · Kosten ca. <strong>1400 CHF</strong></li>
+                    <li>Lagerung auf Schaukel · nach Anstechen max. <strong>6 Std.</strong> verwendbar · Transfusionsbesteck 200 µm Filter</li>
+                    <li>Via LA 2 bestellen → sofortige Lieferung durch Transfusionslabor</li>
+                    <li>&lt;15 kg: Split-TK (~100 ml) mit Transfusionslabor besprechen · keine Rückgabe möglich</li>
+                </ul>
+            </div>`;
+
+        // ── Gerinnungsaktiva ────────────────────────────────────
+        const gerinnungContent = `
+            <div class="table-wrap">
+                <table class="med-table">
+                    <thead><tr><th>Medikament</th><th>Indikation / Hinweis</th><th>Dosis → ${w} kg</th></tr></thead>
+                    <tbody>
+                        <tr>
+                            <td class="fluid-label"><strong>Tranexamsäure</strong><span class="med-notes">0.5 g/5 ml · i.v. über 15 min</span></td>
+                            <td style="font-size:0.78rem;color:var(--text-muted);">Standard · Cave: schnelle i.v. Gabe → Nausea, Krämpfe</td>
+                            <td><span class="dosis-cell">${txa_std_mg}</span></td>
+                        </tr>
+                        <tr>
+                            <td class="fluid-label"><strong>Tranexamsäure</strong><span class="med-notes">Perfusor Kinderchirurgie</span></td>
+                            <td style="font-size:0.78rem;color:var(--text-muted);">bis 4–6 h nach OP · 5 mg/kg/h</td>
+                            <td><span class="dosis-cell">${txa_perf_kch}</span></td>
+                        </tr>
+                        <tr>
+                            <td class="fluid-label"><strong>Tranexamsäure</strong><span class="med-notes">Perfusor Kinderherzchirurgie</span></td>
+                            <td style="font-size:0.78rem;color:var(--text-muted);">1.5 mg/kg/h</td>
+                            <td><span class="dosis-cell">${txa_perf_hch}</span></td>
+                        </tr>
+                        <tr>
+                            <td class="fluid-label"><strong>Tranexamsäure</strong><span class="med-notes">Hyperfibrinolyse / GI-Blutung</span></td>
+                            <td style="font-size:0.78rem;color:var(--text-muted);">20 mg/kg i.v. über 15 min</td>
+                            <td><span class="dosis-cell">${txa_hyper_mg}</span></td>
+                        </tr>
+                        <tr>
+                            <td class="fluid-label"><strong>Fibrinogen</strong><span class="med-notes">1 g/2 g Trockensubst. · i.v. über 15 min</span></td>
+                            <td style="font-size:0.78rem;color:var(--text-muted);">FIBTEM A10 &lt;10 mm · 50 mg/kg</td>
+                            <td><span class="dosis-cell">${fibri_mg}</span></td>
+                        </tr>
+                        <tr>
+                            <td class="fluid-label"><strong>Prothrombinkomplex</strong><span class="med-notes">Cave: Heparin → nicht bei HIT · thrombogen → nicht bei Sepsis/DIC</span></td>
+                            <td style="font-size:0.78rem;color:var(--text-muted);">INR &gt;2.0 → 25 IE/kg · Formel: Δ% × kg × 56</td>
+                            <td><span class="dosis-cell">${ptc_low}</span></td>
+                        </tr>
+                        <tr>
+                            <td class="fluid-label"><strong>F VIII (vWF)</strong><span class="med-notes">Notfalldosis · langsam i.v.</span></td>
+                            <td style="font-size:0.78rem;color:var(--text-muted);">vWF-Aktivität beachten! · 500 E → 10 ml Aqua</td>
+                            <td><span class="dosis-cell">${fviii} IE</span></td>
+                        </tr>
+                        <tr>
+                            <td class="fluid-label"><strong>F XIII P</strong><span class="med-notes">250/1250 E Trockensubst.</span></td>
+                            <td style="font-size:0.78rem;color:var(--text-muted);">20 IE/kg langsam i.v.</td>
+                            <td><span class="dosis-cell">${f13} IE</span></td>
+                        </tr>
+                        <tr>
+                            <td class="fluid-label"><strong>Desmopressin</strong><span class="med-notes">4 mcg/ml · i.v. über 15 min · 1 ml + 100 ml NaCl 0.9%</span></td>
+                            <td style="font-size:0.78rem;color:var(--text-muted);">Cave: Wasserretention, Hyponatriämie, RR-Anstieg</td>
+                            <td><span class="dosis-cell">${ddavp}</span></td>
+                        </tr>
+                        <tr>
+                            <td class="fluid-label"><strong>SD FFP</strong><span class="med-notes">200 ml · nach Auftauen sofort (max. 6 h)</span></td>
+                            <td style="font-size:0.78rem;color:var(--text-muted);">Cave: Volumenbelastung · ggf. repetieren</td>
+                            <td><span class="dosis-cell">${plasma_lo}–${plasma_hi} ml</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>`;
+
+        container.innerHTML =
+            accordion('🔴 Erythrozytenkonzentrat (EK)', ekContent, true) +
+            accordion('🟡 Plasma (S/D)', plasmaContent) +
+            accordion('🟣 Thrombozytenkonzentrat (TK)', tkContent) +
+            accordion('⚙️ Gerinnungsaktiva', gerinnungContent);
     }
 
     // Event-Listener
